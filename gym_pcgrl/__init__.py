@@ -1,4 +1,4 @@
-from gym.envs.registration import register
+from gymnasium.envs.registration import register
 from gym_pcgrl.envs.probs import PROBLEMS
 from gym_pcgrl.envs.reps import REPRESENTATIONS
 
@@ -8,5 +8,5 @@ for prob in PROBLEMS.keys():
         register(
             id='{}-{}-v0'.format(prob, rep),
             entry_point='gym_pcgrl.envs:PcgrlEnv',
-            kwargs={"prob": prob, "rep": rep}
+            kwargs={"prob": prob, "rep": rep, "render_mode" : "rgb_array"}
         )
