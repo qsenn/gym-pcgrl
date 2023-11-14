@@ -1,4 +1,4 @@
-from gym.utils import seeding
+from gymnasium.utils import seeding
 from gym_pcgrl.envs.helper import gen_random_map
 
 """
