@@ -2,8 +2,8 @@ from gym_pcgrl.envs.probs import PROBLEMS
 from gym_pcgrl.envs.reps import REPRESENTATIONS
 from gym_pcgrl.envs.helper import get_int_prob, get_string_map
 import numpy as np
-import gym
-from gym import spaces
+import gymnasium as gym
+from gymnasium import spaces
 import PIL
 
 """
@@ -24,9 +24,10 @@ class PcgrlEnv(gym.Env):
         rep (string): the current representation. This name has to be defined in REPRESENTATIONS
         constant in gym_pcgrl.envs.reps.__init__.py
     """
-    def __init__(self, prob="binary", rep="narrow"):
+    def __init__(self, prob="binary", rep="narrow", render_mode='rgb_array'):
         self._prob = PROBLEMS[prob]()
         self._rep = REPRESENTATIONS[rep]()
+        self._rendoer_mode = render_mode
         self._rep_stats = None
         self._iteration = 0
         self._changes = 0
@@ -63,7 +64,7 @@ class PcgrlEnv(gym.Env):
         Observation: the current starting observation have structure defined by
         the Observation Space
     """
-    def reset(self):
+    def reset(self, seed, options):
         self._changes = 0
         self._iteration = 0
         self._rep.reset(self._prob._width, self._prob._height, get_int_prob(self._prob._prob, self._prob.get_tile_types()))
@@ -73,7 +74,7 @@ class PcgrlEnv(gym.Env):
 
         observation = self._rep.get_observation()
         observation["heatmap"] = self._heatmap.copy()
-        return observation
+        return observation, {}
 
     """
     Get the border tile that can be used for padding
@@ -147,7 +148,7 @@ class PcgrlEnv(gym.Env):
         info["max_iterations"] = self._max_iterations
         info["max_changes"] = self._max_changes
         #return the values
-        return observation, reward, done, info
+        return observation, reward, done, done, info
 
     """
     Render the current state of the environment
@@ -158,7 +159,7 @@ class PcgrlEnv(gym.Env):
     Returns:
         img or boolean: img for rgb_array rendering and boolean for human rendering
     """
-    def render(self, mode='human'):
+    def render(self, mode='rgb_array'):
         tile_size=16
         img = self._prob.render(get_string_map(self._rep._map, self._prob.get_tile_types()))
         img = self._rep.render(img, self._prob._tile_size, self._prob._border_size).convert("RGB")
