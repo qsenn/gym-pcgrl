@@ -1,4 +1,4 @@
-import gym
+import gymnasium as gym
 import gym_pcgrl
 
 import numpy as np
@@ -41,14 +41,14 @@ class ToImage(gym.Wrapper):
 
     def step(self, action):
         action = get_action(action)
-        obs, reward, done, info = self.env.step(action)
+        obs, reward, done, done, info = self.env.step(action)
         obs = self.transform(obs)
-        return obs, reward, done, info
+        return obs, reward, done, done, info
 
-    def reset(self):
-        obs = self.env.reset()
+    def reset(self, seed, options):
+        obs, _ = self.env.reset(seed=seed, options=options)
         obs = self.transform(obs)
-        return obs
+        return obs, {}
 
     def transform(self, obs):
         final = np.empty([])
@@ -85,18 +85,19 @@ class OneHotEncoding(gym.Wrapper):
         for v in shape:
             new_shape.append(v)
         new_shape.append(self.dim)
+        new_shape = new_shape[::-1]
         self.observation_space.spaces[self.name] = gym.spaces.Box(low=0, high=1, shape=new_shape, dtype=np.uint8)
-
+        
     def step(self, action):
         action = get_action(action)
-        obs, reward, done, info = self.env.step(action)
+        obs, reward, done, done, info = self.env.step(action)
         obs = self.transform(obs)
-        return obs, reward, done, info
+        return obs, reward, done, done, info
 
-    def reset(self):
-        obs = self.env.reset()
+    def reset(self, seed, options):
+        obs, _ = self.env.reset(seed=seed, options=options)
         obs = self.transform(obs)
-        return obs
+        return obs, {}
 
     def transform(self, obs):
         old = obs[self.name]
@@ -142,16 +143,16 @@ class ActionMap(gym.Wrapper):
         if 'pos' in self.old_obs:
             o_x, o_y = self.old_obs['pos']
             if o_x == x and o_y == y:
-                obs, reward, done, info = self.env.step(v)
+                obs, reward, done, done, info = self.env.step(v)
             else:
                 o_v = self.old_obs['map'][o_y][o_x]
                 if self.one_hot:
                     o_v = o_v.argmax()
-                obs, reward, done, info = self.env.step(o_v)
+                obs, reward, done, done, info = self.env.step(o_v)
         else:
-            obs, reward, done, info = self.env.step([x, y, v])
+            obs, reward, done, done, info = self.env.step([x, y, v])
         self.old_obs = obs
-        return obs, reward, done, info
+        return obs, reward, done, done, info
 
 """
 Crops and centers the view around the agent and replace the map with cropped version
@@ -168,7 +169,6 @@ class Cropped(gym.Wrapper):
             self.env = game
         get_pcgrl_env(self.env).adjust_param(**kwargs)
         gym.Wrapper.__init__(self, self.env)
-
         assert 'pos' in self.env.observation_space.spaces.keys(), 'This wrapper only works for representations thave have a position'
         assert name in self.env.observation_space.spaces.keys(), 'This wrapper only works if you have a {} key'.format(name)
         assert len(self.env.observation_space.spaces[name].shape) == 2, "This wrapper only works on 2D arrays."
@@ -176,7 +176,6 @@ class Cropped(gym.Wrapper):
         self.size = crop_size
         self.pad = crop_size//2
         self.pad_value = pad_value
-
         self.observation_space = gym.spaces.Dict({})
         for (k,s) in self.env.observation_space.spaces.items():
             self.observation_space.spaces[k] = s
@@ -185,14 +184,14 @@ class Cropped(gym.Wrapper):
 
     def step(self, action):
         action = get_action(action)
-        obs, reward, done, info = self.env.step(action)
+        obs, reward, done, _, info = self.env.step(action)
         obs = self.transform(obs)
-        return obs, reward, done, info
+        return obs, reward, done, done, info
 
-    def reset(self):
-        obs = self.env.reset()
+    def reset(self, seed, options):
+        obs, _ = self.env.reset(seed=seed, options=options)
         obs = self.transform(obs)
-        return obs
+        return obs, {}
 
     def transform(self, obs):
         map = obs[self.name]
