@@ -1,10 +1,8 @@
 import gymnasium as gym
-import gym_pcgrl
 
 import numpy as np
 import math
 import os
-
 # clean the input action
 get_action = lambda a: a.item() if hasattr(a, "item") else a
 # unwrap all the environments and get the PcgrlEnv
@@ -45,7 +43,7 @@ class ToImage(gym.Wrapper):
         obs = self.transform(obs)
         return obs, reward, done, done, info
 
-    def reset(self, seed, options):
+    def reset(self, seed=None, options=None):
         obs, _ = self.env.reset(seed=seed, options=options)
         obs = self.transform(obs)
         return obs, {}
@@ -94,8 +92,8 @@ class OneHotEncoding(gym.Wrapper):
         obs = self.transform(obs)
         return obs, reward, done, done, info
 
-    def reset(self, seed, options):
-        obs, _ = self.env.reset(seed=seed, options=options)
+    def reset(self, seed=None, options=None):
+        obs, _ = self.env.reset()
         obs = self.transform(obs)
         return obs, {}
 
@@ -133,8 +131,8 @@ class ActionMap(gym.Wrapper):
        #self.action_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(h,w,dim))
         self.action_space = gym.spaces.Discrete(h*w*self.dim)
 
-    def reset(self):
-        self.old_obs = self.env.reset()
+    def reset(self, seed=None, options=None):
+        self.old_obs = self.env.reset(seed=seed, options=options)
         return self.old_obs
 
     def step(self, action):
@@ -167,7 +165,7 @@ class Cropped(gym.Wrapper):
             self.env = gym.make(game)
         else:
             self.env = game
-        get_pcgrl_env(self.env).adjust_param(**kwargs)
+        get_pcgrl_env(self.env).get_wrapper_attr('adjust_param')(**kwargs)
         gym.Wrapper.__init__(self, self.env)
         assert 'pos' in self.env.observation_space.spaces.keys(), 'This wrapper only works for representations thave have a position'
         assert name in self.env.observation_space.spaces.keys(), 'This wrapper only works if you have a {} key'.format(name)
@@ -188,7 +186,7 @@ class Cropped(gym.Wrapper):
         obs = self.transform(obs)
         return obs, reward, done, done, info
 
-    def reset(self, seed, options):
+    def reset(self, seed=None, options=None):
         obs, _ = self.env.reset(seed=seed, options=options)
         obs = self.transform(obs)
         return obs, {}
@@ -214,9 +212,9 @@ The wrappers we use for narrow and turtle experiments
 class CroppedImagePCGRLWrapper(gym.Wrapper):
     def __init__(self, game, crop_size, **kwargs):
         self.pcgrl_env = gym.make(game)
-        self.pcgrl_env.adjust_param(**kwargs)
+        self.pcgrl_env.get_wrapper_attr('adjust_param')(**kwargs)
         # Cropping the map to the correct crop_size
-        env = Cropped(self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), 'map')
+        env = Cropped(self.pcgrl_env, crop_size, self.pcgrl_env.get_wrapper_attr('get_border_tile')(), 'map')
         # Transform to one hot encoding if not binary
         if 'binary' not in game:
             env = OneHotEncoding(env, 'map')

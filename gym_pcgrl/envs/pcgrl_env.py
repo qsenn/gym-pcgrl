@@ -13,7 +13,7 @@ class PcgrlEnv(gym.Env):
     """
     The type of supported rendering
     """
-    metadata = {'render.modes': ['human', 'rgb_array']}
+    metadata = {'render_modes': ['human', 'rgb_array']}
 
     """
     Constructor for the interface.
@@ -27,7 +27,7 @@ class PcgrlEnv(gym.Env):
     def __init__(self, prob="binary", rep="narrow", render_mode='rgb_array'):
         self._prob = PROBLEMS[prob]()
         self._rep = REPRESENTATIONS[rep]()
-        self._rendoer_mode = render_mode
+        self._render_mode = render_mode
         self._rep_stats = None
         self._iteration = 0
         self._changes = 0
@@ -64,7 +64,7 @@ class PcgrlEnv(gym.Env):
         Observation: the current starting observation have structure defined by
         the Observation Space
     """
-    def reset(self, seed, options):
+    def reset(self, seed=None, options=None):
         self._changes = 0
         self._iteration = 0
         self._rep.reset(self._prob._width, self._prob._height, get_int_prob(self._prob._prob, self._prob.get_tile_types()))

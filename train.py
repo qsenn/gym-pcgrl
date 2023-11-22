@@ -5,8 +5,9 @@ import model
 from model import CNN1
 from utils import get_exp_name, max_exp_idx, load_model, make_vec_envs
 from stable_baselines3.common.policies import ActorCriticCnnPolicy
-from stable_baselines3 import PPO
-
+from stable_baselines3 import PPO, DQN
+from bcq import BCQ
+from policies import BCQCnnPolicy
 import numpy as np
 import os
 
@@ -47,10 +48,13 @@ best_mean_reward, n_steps = -np.inf, 0
 #     return True
 
 
-def main(game, representation, experiment, steps, n_cpu, render, logging, **kwargs):
+def main(game, representation, model_type, experiment, steps, n_cpu, render, logging, **kwargs):
     env_name = '{}-{}-v0'.format(game, representation)
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
     resume = kwargs.get('resume', False)
+    if 'buffer_size' in kwargs:
+        buffer_size = kwargs.get('buffer_size', 1e6)
+        
     if representation == 'wide':
         # policy = FullyConvPolicyBigMap
         pass
@@ -61,10 +65,11 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         # policy = CustomPolicyBigMap
         
         if game == "sokoban":
-            policy_kwargs = dict(
-                features_extractor_class=CNN1,
-            )
-            policy = 'CnnPolicy'
+            if model_type == 'BCQ':
+                policy_kwargs = dict(
+                    features_extractor_class=CNN1,
+                )
+                policy = BCQCnnPolicy
     if game == "binary":
         kwargs['cropped_size'] = 28
     elif game == "zelda":
@@ -90,25 +95,29 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         used_dir = None
     env = make_vec_envs(env_name, representation, log_dir, n_cpu, **kwargs)
     if not resume or model is None:
-        model = PPO(policy, env, policy_kwargs=policy_kwargs, verbose=1, tensorboard_log="./runs")
+        if model_type == 'BCQ':
+            model = BCQ(policy, env, buffer_size=buffer_size, policy_kwargs=policy_kwargs, verbose=1, tensorboard_log="./runs")
     else:
         model.set_env(env)
     if not logging:
-        model.learn(total_timesteps=int(steps), tb_log_name=exp_name)
+        model.learn(total_timesteps=int(steps), tb_log_name=exp_name, log_interval=400)
     else:
-        model.learn(total_timesteps=int(steps), tb_log_name=exp_name)
+        model.learn(total_timesteps=int(steps), tb_log_name=exp_name, log_interval=400)
 
 ################################## MAIN ########################################
 game = 'sokoban'
 representation = 'narrow'
 experiment = None
-steps = 1e8
+steps = 1e7
 render = False
 logging = True
-n_cpu = 1
+n_cpu = 4
+model_type = 'BCQ'
 kwargs = {
-    'resume': False
+    'resume': False,
+    'change_percentage' : 0.3,
+    'buffer_size' : int(1e6)
 }
 
 if __name__ == '__main__':
-    main(game, representation, experiment, steps, n_cpu, render, logging, **kwargs)
+    main(game, representation, model_type, experiment, steps, n_cpu, render, logging, **kwargs)

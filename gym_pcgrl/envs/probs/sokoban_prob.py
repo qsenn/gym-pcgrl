@@ -59,7 +59,6 @@ class SokobanProblem(Problem):
     """
     def adjust_param(self, **kwargs):
         super().adjust_param(**kwargs)
-
         self._solver_power = kwargs.get('solver_power', self._solver_power)
         self._max_crates = kwargs.get('max_crates', self._max_crates)
         self._max_crates = kwargs.get('max_targets', self._max_crates)
